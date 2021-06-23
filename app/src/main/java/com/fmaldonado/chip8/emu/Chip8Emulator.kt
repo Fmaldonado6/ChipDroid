@@ -72,6 +72,10 @@ class Chip8Emulator {
                     }
                 }
             }
+            0x1000 ->{
+                val nnn = opcodeCode and 0x0FFF
+                programCounter = nnn.toChar()
+            }
             0xA000 -> {
                 index = (opcodeCode and 0x0FFF).toChar()
                 programCounter += 2
