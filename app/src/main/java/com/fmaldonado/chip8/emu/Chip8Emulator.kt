@@ -66,15 +66,47 @@ class Chip8Emulator {
                         }
                         programCounter += 2
                     }
-                    0x00EE->{
+                    0x00EE -> {
                         stackPointer--
                         programCounter = stack[stackPointer.toInt()] + 2
                     }
                 }
             }
-            0x1000 ->{
+            0x1000 -> {
                 val nnn = opcodeCode and 0x0FFF
                 programCounter = nnn.toChar()
+            }
+            0x2000 -> {
+                stack[stackPointer.toInt()] = programCounter
+                stackPointer++
+                val nnn = opcodeCode and 0x0FFF
+                programCounter = nnn.toChar()
+            }
+            0x3000 -> {
+                val x = (opcodeCode and 0x0F00) shr 8
+                val nn = opcodeCode and 0x00FF
+                programCounter += if (V[x].code == nn) 4 else 2
+            }
+            0x4000 -> {
+                val x = (opcodeCode and 0x0F00) shr 8
+                val nn = opcodeCode and 0x00FF
+                programCounter += if (V[x].code != nn) 4 else 2
+            }
+            0x5000 -> {
+                val y = (opcodeCode and 0x00F0) shr 4
+                val x = (opcodeCode and 0x0F00) shr 8
+                programCounter += if (V[x] == V[y]) 4 else 2
+            }
+            0x6000 -> {
+                val x = (opcodeCode and 0x0F00) shr 8
+                val nn = opcodeCode and 0x00FF
+                V[x] = nn.toChar()
+                programCounter += 2
+            }
+            0x7000 ->{
+                val x = (opcodeCode and 0x0F00) shr 8
+                val nn = opcodeCode and 0x00FF
+                V[x] = ((V[x] + nn).code and 0xFF).toChar()
             }
             0xA000 -> {
                 index = (opcodeCode and 0x0FFF).toChar()
