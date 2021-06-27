@@ -43,4 +43,3 @@ ChipDroid is a simple Android Chip-8 emulator written in Kotlin
 
 Fernando Maldonado - [@Fmaldonado4202](https://twitter.com/Fmaldonado4202) - fmaldonado824@gmail.com
 
-Project Link: [https://github.com/Fmaldonado6/Akiyama](https://github.com/Fmaldonado6/Akiyama)
