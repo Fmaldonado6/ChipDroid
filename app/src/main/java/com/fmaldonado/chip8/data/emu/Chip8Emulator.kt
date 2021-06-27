@@ -1,10 +1,19 @@
-package com.fmaldonado.chip8.emu
+package com.fmaldonado.chip8.data.emu
 
+import android.net.Uri
+import android.util.Log
+import androidx.core.net.toFile
 import java.io.DataInputStream
-import kotlin.experimental.and
+import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
+import java.net.URI
+import javax.inject.Inject
 import kotlin.properties.Delegates
 
-class Chip8Emulator {
+class Chip8Emulator
+@Inject
+constructor() {
 
     companion object {
         const val MEMORY_SIZE = 4096
@@ -20,7 +29,7 @@ class Chip8Emulator {
     private var programCounter by Delegates.notNull<Char>()
 
     private var opcode by Delegates.notNull<Char>()
-    private lateinit var display: CharArray
+    lateinit var display: ByteArray
 
     private lateinit var stack: CharArray
     private var stackPointer by Delegates.notNull<Short>()
@@ -28,7 +37,7 @@ class Chip8Emulator {
     private var delayTime by Delegates.notNull<Char>()
     private var soundTimer by Delegates.notNull<Char>()
 
-    private lateinit var key: CharArray
+    private lateinit var key: ByteArray
     var needsRedraw = false
 
     init {
@@ -39,19 +48,20 @@ class Chip8Emulator {
         memory = CharArray(MEMORY_SIZE)
         V = CharArray(CPU_REGISTER_SIZE)
         stack = CharArray(STACK_SIZE)
-        display = CharArray(DISPLAY_SIZE)
+        display = ByteArray(DISPLAY_SIZE)
 
         index = 0x0.toChar()
-        programCounter = 0x0.toChar()
+        programCounter = 0x200.toChar()
         stackPointer = 0
 
-        key = CharArray(KEY_COUNT)
+        key = ByteArray(KEY_COUNT)
 
         delayTime = 0.toChar()
         soundTimer = 0.toChar()
 
         opcode = 0x0.toChar()
         needsRedraw = false
+        loadFontset()
     }
 
     fun runProgram() {
@@ -59,19 +69,23 @@ class Chip8Emulator {
             ((memory[programCounter.code].code shl 8) or memory[programCounter.code + 1].code).toChar()
 
         val opcodeCode = opcode.code
-
         when (opcodeCode and 0xF000) {
             0x0000 -> {
                 when (opcodeCode and 0x00FF) {
                     0x00E0 -> {
                         for (i in display.indices) {
-                            display[i] = 0.toChar()
+                            display[i] = 0
                         }
                         programCounter += 2
+                        needsRedraw = true;
                     }
                     0x00EE -> {
                         stackPointer--
                         programCounter = stack[stackPointer.toInt()] + 2
+                    }
+                    else -> {
+                        Log.d("MEMORY", "UNSUPPORTED")
+
                     }
                 }
             }
@@ -123,7 +137,7 @@ class Chip8Emulator {
                     0x0001 -> {
                         val x = (opcodeCode and 0x0F00) shr 8
                         val y = (opcodeCode and 0x00F0) shr 4
-                        V[x] = (V[x].code or V[y].code).toChar()
+                        V[x] = ((V[x].code or V[y].code) and 0xFF).toChar()
                         programCounter += 2
                     }
                     0x0002 -> {
@@ -135,7 +149,7 @@ class Chip8Emulator {
                     0x0003 -> {
                         val x = (opcode.code and 0x0F00) shr 8
                         val y = (opcode.code and 0x00F0) shr 4
-                        V[x] = (V[x].code xor V[y].code).toChar()
+                        V[x] = ((V[x].code xor V[y].code) and 0xFF).toChar()
                         programCounter += 2
                     }
                     0x0004 -> {
@@ -193,20 +207,20 @@ class Chip8Emulator {
             0xC000 -> {
                 val x = (opcode.code and 0x0F00) shr 8
                 val nn = opcodeCode and 0x00FF
-                val random = (0..256).random() and nn
+                val random = (0 until 256).random() and nn
                 V[x] = random.toChar()
                 programCounter += 2
             }
             0xD000 -> {
-                val x = (opcode.code and 0x0F00) shr 8
-                val y = (opcode.code and 0x00F0) shr 4
+                val x = V[(opcode.code and 0x0F00) shr 8].code
+                val y = V[(opcode.code and 0x00F0) shr 4].code
                 val height = opcodeCode and 0x000F
 
                 V[0xF] = 0.toChar()
 
-                for (_y in 0..height) {
+                for (_y in 0 until height) {
                     val line = memory[index.code + _y]
-                    for (_x in 0..8) {
+                    for (_x in 0 until 8) {
                         val pixel = line.code and (0x80 shr _x)
                         if (pixel == 0)
                             continue
@@ -219,27 +233,27 @@ class Chip8Emulator {
 
                         val displayIndex = totalY * 64 + totalX
 
-                        if (display[displayIndex].code == 1)
+                        if (display[displayIndex].toInt() == 1)
                             V[0xF] = 1.toChar()
 
-                        display[displayIndex] = (display[displayIndex].code xor 1).toChar()
+                        display[displayIndex] = (display[displayIndex].toInt() xor 1).toByte()
                     }
 
-                    programCounter += 2
-                    needsRedraw = true
                 }
+                programCounter += 2
+                needsRedraw = true
             }
             0xE000 -> {
                 when (opcodeCode and 0x00FF) {
                     0x009E -> {
-                        val x = (opcode.code and 0x0F00) shr 8
+                        val x = (opcodeCode and 0x0F00) shr 8
                         val currentKey = V[x]
-                        programCounter += if (key[currentKey.code].code == 1) 4 else 2
+                        programCounter += if (key[currentKey.code].toInt() == 1) 4 else 2
                     }
                     0x00A1 -> {
                         val x = (opcode.code and 0x0F00) shr 8
                         val currentKey = V[x]
-                        programCounter += if (key[currentKey.code].code == 0) 4 else 2
+                        programCounter += if (key[currentKey.code].toInt() == 0) 4 else 2
                     }
                     else -> {
                         throw Error("Unsupported opcode")
@@ -256,10 +270,11 @@ class Chip8Emulator {
                     0x000A -> {
                         val x = (opcode.code and 0x0F00) shr 8
                         for (i in key.indices) {
-                            if (key[i].code != 1)
-                                continue
-                            V[x] = i.toChar()
-                            programCounter += 2
+                            if (key[i].toInt() == 1) {
+                                V[x] = i.toChar()
+                                programCounter += 2
+                                break
+                            }
                         }
                     }
                     0x0015 -> {
@@ -298,6 +313,13 @@ class Chip8Emulator {
                     0x0055 -> {
                         val x = (opcode.code and 0x0F00) shr 8
                         for (i in 0..x) {
+                            memory[index.code + 1] = V[i]
+                        }
+                        programCounter += 2
+                    }
+                    0x0065 -> {
+                        val x = (opcode.code and 0x0F00) shr 8
+                        for (i in 0..x) {
                             V[i] = memory[index.code + i]
                         }
                         index += x + 1
@@ -320,23 +342,27 @@ class Chip8Emulator {
             soundTimer--
     }
 
-    fun loadProgram(input: DataInputStream) {
+    fun loadProgram(inputStream: InputStream) {
+
+        val input = DataInputStream(inputStream)
         var offset = 0
         while (input.available() > 0) {
-            memory[0x200 + offset] = ((input.readByte()).toInt() and 0xFF).toChar()
+            memory[0x200 + offset] = (input.readByte().toInt() and 0xFF).toChar()
+            Log.d("MEMORY", Integer.toHexString(memory[0x200 + offset].code))
             offset++
         }
+
         input.close()
     }
 
-    fun loadFontset() {
+    private fun loadFontset() {
         for (i in Chip8Data.FONTSET.indices)
             memory[0x50 + i] = (Chip8Data.FONTSET[i] and 0xFF).toChar()
     }
 
     fun setKeyBuffer(keyBuffer: IntArray) {
         for (i in key.indices)
-            key[i] = keyBuffer[i].toChar()
+            key[i] = keyBuffer[i].toByte()
     }
 
 

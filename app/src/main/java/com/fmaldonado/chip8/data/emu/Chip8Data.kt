@@ -1,4 +1,4 @@
-package com.fmaldonado.chip8.emu
+package com.fmaldonado.chip8.data.emu
 
 object Chip8Data {
     val FONTSET = intArrayOf(
