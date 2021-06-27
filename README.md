@@ -34,6 +34,11 @@ ChipDroid is a simple Android Chip-8 emulator written in Kotlin
 4. Push to the branch: `git push origin my-new-feature`
 5. Submit a pull request
 
+## ☕ Like what I do?
+<br>
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/U7U54JOMU)
+
 ## Contact
 
 Fernando Maldonado - [@Fmaldonado4202](https://twitter.com/Fmaldonado4202) - fmaldonado824@gmail.com
