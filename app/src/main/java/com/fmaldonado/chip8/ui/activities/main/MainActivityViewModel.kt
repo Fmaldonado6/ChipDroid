@@ -25,6 +25,7 @@ constructor(
 ) : ViewModel() {
 
     val screen = MutableLiveData(chip8.display.toList())
+    val keyBuffer = IntArray(16)
     fun loadFile(input: InputStream) {
         try {
             chip8.restart()
@@ -38,7 +39,7 @@ constructor(
     private fun run() {
         viewModelScope.launch {
             while (true) {
-                chip8.setKeyBuffer(IntArray(16))
+                chip8.setKeyBuffer(keyBuffer)
                 chip8.runProgram()
                 if (chip8.needsRedraw) {
                     val newList = mutableListOf<Byte>()
@@ -49,6 +50,14 @@ constructor(
                 delay(8)
             }
         }
+    }
+
+    fun addToKeyBuffer(key: Int) {
+        keyBuffer[key] = 1
+    }
+
+    fun removeKeyFromBuffer(key: Int) {
+        keyBuffer[key] = 0
     }
 
 }
