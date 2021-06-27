@@ -7,8 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fmaldonado.chip8.data.emu.Chip8Emulator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.io.DataInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -25,7 +24,8 @@ constructor(
 ) : ViewModel() {
 
     val screen = MutableLiveData(chip8.display.toList())
-    val keyBuffer = IntArray(16)
+    private val keyBuffer = IntArray(16)
+    private var coroutine: Job? = null
     fun loadFile(input: InputStream) {
         try {
             chip8.restart()
@@ -37,7 +37,10 @@ constructor(
     }
 
     private fun run() {
-        viewModelScope.launch {
+
+        coroutine?.cancel()
+
+        coroutine = viewModelScope.launch {
             while (true) {
                 chip8.setKeyBuffer(keyBuffer)
                 chip8.runProgram()
